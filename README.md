@@ -1,24 +1,30 @@
-# Splat: Affinity Diagramming for the Masses
+# Splat: An Affinity Diagramming Tool in a Single File
 
- <img src="splat-logo.png" width="220px"> 
+ <img src="images/splat-logo.png" width="120px"> 
 
-An affinity diagramming tool for tasks like qualitative coding and mind-mapping. 
+An affinity diagramming tool for tasks like qualitative coding and mind-mapping, with a single-file footprint. 
  - Cluster notes on a canvas in your web browser
  - Single HTML file footprint, no dependencies or installation required
- - Optional metadata around notes, such as participant IDs
  - Basic tools like select, group move, duplicate, color
- - Simple JSON export: dead-easy to transfer to others and edit yourself
+ - Simple JSON export: dead-easy to transfer to others and edit yoursel
  - Semantic search with embedding models by HF Transformers.js (entirely in browser), Ollama, or OpenAI
+ - Visualize representativeness of participant IDs (P1, P2, etc.) by selecting notes in a cluster
  - AI Assistant Agent that can perform some basic actions on the notes board (optional, Ollama for local  or OpenAI for more powerful non-local backend)
  - Completely open-source—feel free to extend and submit PRs to help others!
 
+![Screenshot of Splat](images/ai-assistance.png)
+
 ## How to "install"
 
-Just load it in your browser. That's it.
+Just load `splat.html` in your browser. That's it.
+
+### But what if I want to use semantic search?
+
+Then you will need an internet connection to download an embedding model from HF Transformers.js, which will run locally in your browser. Once it's loaded, though, you're good.
 
 ### But what if I'm special and want to call local models from Ollama?
 
-OK, there is one caveat: if you want to use [Ollama](https://ollama.com) as an embeddings or LLM provider from your local machine, you *must* enable CORS policy on your running Ollama instance. This is **not** enabled by default. Follow these instructions: https://objectgraph.com/blog/ollama-cors/
+OK, if you want to use [Ollama](https://ollama.com) as an embeddings or LLM provider from your local machine, you *must* enable CORS policy on your running Ollama instance. This is **not** enabled by default. Follow these instructions: https://objectgraph.com/blog/ollama-cors/
 
 For MacOS, what worked for us was running: 
 
@@ -30,7 +36,7 @@ in the terminal, then restarting Ollama and serving it via `ollama serve`.
 
 To use Ollama, you then must install specific models. Ollama also hosts embedding models, like `bge-large`. For more info, see the [Ollama documentation](https://ollama.com/search).
 
-## Adding Notes from Files
+## How Can I Add Notes from Files?
 
 Splat can load notes from plain text files (`.txt`) or CSV files (`.csv`). To load:
 - Drag and drop the file onto the canvas, or
@@ -69,6 +75,18 @@ The CSV parser handles:
 
 Notes can include participant IDs in parentheses (e.g., `(P1)`, `(P2)`) at the end. When you select multiple notes, Splat will show all participant IDs in the status bar.
 
+## Why Splat?
+
+I am an HCI researcher who prefers to [affinity diagram](https://www.nngroup.com/articles/affinity-diagram/) when coding qualitative data. In the past, 
+I've used FigJam and Miro, but find them too clunky and proprietary for this task. 
+I wanted a tool that supports affinity diagramming for research with low overhead.
+
+Splat was created during a real research project: an interview study where I had to cluster 1400+ descriptive codes. While using Splat to manually cluster data, I added features iteratively as I needed them. These include selecting multiple notes, displaying participant IDs of selected notes, and  semantic search. When sharing with my teammates, I found it very easy to just give them the exported JSON file and the HTML of Splat, which they could load themselves.
+
+The semantic search feature of Splat is configurable and AI assistance can be entirely local with Ollama running on-device. For many research applications, this privacy is essential. However, I have observed students use Splat for many other use cases, outside of qualitative coding; thus, more powerful AI assistance via OpenAI is available to those who want it. 
+
+Splat is offered as a community resource, completely free and open-source. Want a feature? Implement it yourself and raise a Pull Request!
+
 ## Key Features
 
 **Board Interaction**
@@ -94,27 +112,9 @@ Notes can include participant IDs in parentheses (e.g., `(P1)`, `(P2)`) at the e
 - **Tool-Calling Agent**: AI can perform actions like searching, creating, editing, and removing notes (note: it cannot cluster them automatically)
 - **Context-Aware**: AI has full access to board state and can use search features
 - **Flexible Backend**: Use Ollama for local/private processing or OpenAI for more powerful responses
- 
-## Why Splat?
-
-I am an HCI researcher who prefers to affinity diagram when doing qualitative research. In the past, 
-we've used FigJam and Miro as stand-ins, but they are too clunky, proprietary, and loaded with extra features. 
-I wanted a tool that supports affinity diagramming for research well and specifically, with low overhead.
-
-Splat was created during a real research project: an interview study where I had to cluster 1400+ descriptive codes on a board. 
-While using the tool to cluster data, I added features iteratively as I needed them. These include selecting multiple notes, displaying 
-participant IDs of selected notes, and wanting semantic search desperately. When sharing with my teammates, 
-I found it very easy to just give them the exported JSON file and the HTML of Splat, which they could load themselves. 
-
-During the process, I realized that other affinity diagram tools have been proposed by researchers, and may even be open-source.
-However, this "open-source" is in name only: I couldn't find one that was actually maintained and user-friendly. 
-
-### Learning qualitative coding with AI assistance
-
-In Splat, the AI aims to be a supportive, reflective tool, meant to push the researcher to ask critical questions of their data and codes. Because of this, Splat deliberately has zero features for LLM-based automatic clustering of data.
 
 ### Acknowledgements
 
-The first version of Splat was originally vibe-coded with the help of Claude Sonnet 4.0, and iteratively adjusted by myself with further targeted AI help in VS Code.
+Splat is an open-source project of the Montréal HCI group. The first version of Splat was originally vibe-coded with the help of Claude Sonnet 4.0, and iteratively adjusted by myself with further targeted AI help in VS Code.
 
-The AI assistance and search results features were added by Jingyue Zhang, Ling Xin He, and Yunfan Shang.
+The AI assistance and search results features were added by Jingyue Zhang, Ling Xin He, and Yunfan Shang. 
