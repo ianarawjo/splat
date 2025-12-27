@@ -1,7 +1,24 @@
+# Splat: Affinity Diagramming for the Masses
 
-### Ollama
+ <img src="splat-logo.png" width="220px"> 
 
-To call Ollama from localhost, you *must* enable CORS policy on your running Ollama instance. Follow these instructions: https://objectgraph.com/blog/ollama-cors/
+An affinity diagramming tool for tasks like qualitative coding and mind-mapping. 
+ - Cluster notes on a canvas in your web browser
+ - Single HTML file footprint, no dependencies or installation required
+ - Optional metadata around notes, such as participant IDs
+ - Basic tools like select, group move, duplicate, color
+ - Simple JSON export: dead-easy to transfer to others and edit yourself
+ - Semantic search with embedding models by HF Transformers.js (entirely in browser), Ollama, or OpenAI
+ - AI Assistant Agent that can perform some basic actions on the notes board (optional, Ollama for local  or OpenAI for more powerful non-local backend)
+ - Completely open-source—feel free to extend and submit PRs to help others!
+
+## How to "install"
+
+Just load it in your browser. That's it.
+
+### But what if I'm special and want to call local models from Ollama?
+
+OK, there is one caveat: if you want to use [Ollama](https://ollama.com) as an embeddings or LLM provider from your local machine, you *must* enable CORS policy on your running Ollama instance. This is **not** enabled by default. Follow these instructions: https://objectgraph.com/blog/ollama-cors/
 
 For MacOS, what worked for us was running: 
 
@@ -10,3 +27,94 @@ launchctl setenv OLLAMA_ORIGINS "*"
 ```
 
 in the terminal, then restarting Ollama and serving it via `ollama serve`. 
+
+To use Ollama, you then must install specific models. Ollama also hosts embedding models, like `bge-large`. For more info, see the [Ollama documentation](https://ollama.com/search).
+
+## Adding Notes from Files
+
+Splat can load notes from plain text files (`.txt`) or CSV files (`.csv`). To load:
+- Drag and drop the file onto the canvas, or
+- Click the **Load File** button to browse for the file
+
+### Text Files (.txt)
+
+Each line becomes a separate note on the canvas.
+
+**Example text file format:**
+```
+Implement user authentication system (P1)
+Add dark mode toggle (P2)
+Improve load time for large datasets (P1)
+Create onboarding tutorial (P3)
+Fix navigation menu on mobile (P2)
+```
+
+### CSV Files (.csv)
+
+The first column of each row becomes a note. For example, if the CSV is: 
+
+```csv
+Implement user authentication system,P1,Security
+Add dark mode toggle,P2,UI/UX
+Improve load time for large datasets,P1,Performance
+Create onboarding tutorial,P3,Documentation
+Fix navigation menu on mobile,P2,UI/UX
+```
+
+only the first column values will appear as notes. 
+
+The CSV parser handles:
+- Quoted fields with commas inside
+- Escaped quotes
+
+Notes can include participant IDs in parentheses (e.g., `(P1)`, `(P2)`) at the end. When you select multiple notes, Splat will show all participant IDs in the status bar.
+
+## Key Features
+
+**Board Interaction**
+- **Auto-save**: Work is automatically saved to localStorage every 60 seconds
+- **Zoom & Pan**: Navigate large canvases with zoom controls (25%-200%) and click-drag panning
+- **Drag-and-drop**: Load text files by dragging them directly onto the canvas
+- **Inline Editing**: Double-click any note to edit it directly on the board
+- **Pin Notes**: Pin important notes to keep them at the top of the visual stack
+
+**Note Management**
+- **Six Colors**: Choose from yellow, pink, blue, green, orange, or purple for visual coding
+- **Selection Mode**: Toggle selection mode to drag-select multiple notes
+- **Export/Import from JSON**: Simple JSON format to save and load files
+- **Participant IDs**: When notes end in participant IDs like (P1) or (P2), participant IDs for all selected notes will appear the status bar (useful when trying to see how 'representative' a cluster is when qualitative coding)
+
+**Semantic Search**
+- **Hybrid Retrieval**: Combines BM25 keyword matching with embedding-based semantic similarity
+- **Three Embedding Providers**: Choose between Transformers.js (local), Ollama (local), or OpenAI (cloud)
+- **Visual Results**: Search results panel shows ranked matches with click-to-focus navigation
+- **Configurable**: Adjust BM25 weight, relevance thresholds, and minimum semantic relevance in settings
+
+**AI Assistant (optional)**
+- **Tool-Calling Agent**: AI can perform actions like searching, creating, editing, and removing notes (note: it cannot cluster them automatically)
+- **Context-Aware**: AI has full access to board state and can use search features
+- **Flexible Backend**: Use Ollama for local/private processing or OpenAI for more powerful responses
+ 
+## Why Splat?
+
+I am an HCI researcher who prefers to affinity diagram when doing qualitative research. In the past, 
+we've used FigJam and Miro as stand-ins, but they are too clunky, proprietary, and loaded with extra features. 
+I wanted a tool that supports affinity diagramming for research well and specifically, with low overhead.
+
+Splat was created during a real research project: an interview study where I had to cluster 1400+ descriptive codes on a board. 
+While using the tool to cluster data, I added features iteratively as I needed them. These include selecting multiple notes, displaying 
+participant IDs of selected notes, and wanting semantic search desperately. When sharing with my teammates, 
+I found it very easy to just give them the exported JSON file and the HTML of Splat, which they could load themselves. 
+
+During the process, I realized that other affinity diagram tools have been proposed by researchers, and may even be open-source.
+However, this "open-source" is in name only: I couldn't find one that was actually maintained and user-friendly. 
+
+### Learning qualitative coding with AI assistance
+
+In Splat, the AI aims to be a supportive, reflective tool, meant to push the researcher to ask critical questions of their data and codes. Because of this, Splat deliberately has zero features for LLM-based automatic clustering of data.
+
+### Acknowledgements
+
+The first version of Splat was originally vibe-coded with the help of Claude Sonnet 4.0, and iteratively adjusted by myself with further targeted AI help in VS Code.
+
+The AI assistance and search results features were added by Jingyue Zhang, Ling Xin He, and Yunfan Shang.
