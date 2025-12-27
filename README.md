@@ -115,6 +115,6 @@ Splat is offered as a community resource, completely free and open-source. Want 
 
 ### Acknowledgements
 
-Splat is an open-source project of the Montréal HCI group. The first version of Splat was originally vibe-coded with the help of Claude Sonnet 4.0, and iteratively adjusted by myself with further targeted AI help in VS Code.
+Splat is an open-source project of the [Montréal HCI](https://hci.iro.umontreal.ca/) group. The first version of Splat was originally vibe-coded with the help of Claude Sonnet 4.0, and iteratively adjusted by myself with further targeted AI help in VS Code.
 
 The AI assistance and search results features were added by Jingyue Zhang, Ling Xin He, and Yunfan Shang. 
