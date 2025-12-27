@@ -960,7 +960,7 @@
 </head>
 <body>
     <div class="toolbar">
-        <input type="file" id="fileInput" class="file-input" accept=".txt">
+        <input type="file" id="fileInput" class="file-input" accept=".txt,.csv">
 
         <!-- Settings Button -->
         <button class="btn btn-secondary btn-sm" onclick="toggleSettingsModal(true)" style="font-size: 12pt; line-height: 1; display: flex; align-items: center; justify-content: center;">
@@ -969,8 +969,8 @@
 
         <!-- File Group -->
         <div class="toolbar-group">
-            <button class="btn btn-primary btn-sm" onclick="document.getElementById('fileInput').click()">Load File</button>
-            <button class="btn btn-secondary btn-sm" onclick="loadSampleData()">Sample</button>
+            <button class="btn btn-primary btn-sm" onclick="document.getElementById('fileInput').click()" title="Load .txt (one per line) or .csv (first column)">Load File</button>
+            <!-- <button class="btn btn-secondary btn-sm" onclick="loadSampleData()">Sample</button> -->
             <button class="btn btn-secondary btn-sm" onclick="saveBoard()">Save</button>
             <button class="btn btn-secondary btn-sm" onclick="loadBoard()">Load</button>
         </div>
@@ -1114,7 +1114,7 @@
     </div>
 
     <div class="drop-zone" id="dropZone">
-        Drop your text file here
+        Drop your .txt or .csv file here
     </div>
 
     <div class="canvas" id="canvas">
@@ -2296,7 +2296,7 @@
 
         function handleFileSelect(e) {
             const file = e.target.files[0];
-            if (file && file.type === 'text/plain') {
+            if (file && (file.type === 'text/plain' || file.type === 'text/csv' || file.name.endsWith('.csv'))) {
                 loadTextFile(file);
             }
         }
@@ -2311,8 +2311,11 @@
             document.getElementById('dropZone').classList.remove('active');
             
             const files = e.dataTransfer.files;
-            if (files.length > 0 && files[0].type === 'text/plain') {
-                loadTextFile(files[0]);
+            if (files.length > 0) {
+                const file = files[0];
+                if (file.type === 'text/plain' || file.type === 'text/csv' || file.name.endsWith('.csv')) {
+                    loadTextFile(file);
+                }
             }
         }
 
@@ -2322,11 +2325,65 @@
             }
         }
 
+        function parseCSVFirstColumn(text) {
+            // Parse CSV and extract first column, handling quoted fields
+            const lines = text.split('\n');
+            const values = [];
+            
+            for (let line of lines) {
+                if (!line.trim()) continue;
+                
+                let firstValue = '';
+                let inQuotes = false;
+                let i = 0;
+                
+                // Parse first field, handling quotes
+                while (i < line.length) {
+                    const char = line[i];
+                    
+                    if (char === '"') {
+                        if (inQuotes && line[i + 1] === '"') {
+                            // Escaped quote
+                            firstValue += '"';
+                            i += 2;
+                        } else {
+                            // Toggle quote state
+                            inQuotes = !inQuotes;
+                            i++;
+                        }
+                    } else if (char === ',' && !inQuotes) {
+                        // End of first field
+                        break;
+                    } else {
+                        firstValue += char;
+                        i++;
+                    }
+                }
+                
+                const trimmed = firstValue.trim();
+                if (trimmed) {
+                    values.push(trimmed);
+                }
+            }
+            
+            return values;
+        }
+
         function loadTextFile(file) {
             const reader = new FileReader();
             reader.onload = function(e) {
                 const text = e.target.result;
-                const codes = text.split('\n').filter(line => line.trim() !== '');
+                let codes;
+                
+                // Detect file type and parse accordingly
+                if (file.name.toLowerCase().endsWith('.csv')) {
+                    codes = parseCSVFirstColumn(text);
+                    updateStatus(`Loaded ${codes.length} codes from CSV (first column)`);
+                } else {
+                    // Plain text file - one note per line
+                    codes = text.split('\n').filter(line => line.trim() !== '');
+                    updateStatus(`Loaded ${codes.length} codes from text file`);
+                }
 
                 // Randomly shuffle codes
                 // NOTE: This helps to kickstart affinity diagramming. 
@@ -2334,7 +2391,6 @@
 
                 // Create notes from codes and add them to the board
                 createNotesFromCodes(codes);
-                updateStatus(`Loaded ${codes.length} codes`);
             };
             reader.readAsText(file);
         }
