@@ -4,12 +4,12 @@
 
 An affinity diagramming tool for tasks like qualitative coding and mind-mapping, with a single-file footprint. 
  - Cluster notes on a canvas in your web browser
- - Single HTML file footprint, no dependencies or installation required
  - Basic tools like select, group move, duplicate, color
- - Simple JSON export: dead-easy to transfer to others and edit yoursel
+ - Save/load board state to/from JSON: dead-easy to transfer to others and edit yourself
  - Semantic search with embedding models by HF Transformers.js (entirely in browser), Ollama, or OpenAI
- - Visualize representativeness of participant IDs (P1, P2, etc.) by selecting notes in a cluster
  - AI Assistant Agent that can perform some basic actions on the notes board (optional, Ollama for local  or OpenAI for more powerful non-local backend)
+ - Visualize representativeness of participant IDs (P1, P2, etc.) by selecting notes in a cluster
+ - Single HTML file footprint, no dependencies or installation required
  - Completely open-source—feel free to extend and submit PRs to help others!
 
 ![Screenshot of Splat](images/ai-assistance.png)
