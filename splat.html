@@ -109,6 +109,48 @@
             background: #c82333;
         }
 
+        .btn-load-model {
+            background: #ff6b35;
+            color: white;
+            font-weight: 600;
+            border: 2px solid #ff6b35;
+            animation: pulse-border 2s infinite;
+        }
+
+        .btn-load-model:hover {
+            background: #ff5722;
+            border-color: #ff5722;
+        }
+
+        .btn-load-model:disabled {
+            background: #ccc;
+            border-color: #ccc;
+            cursor: not-allowed;
+            animation: none;
+        }
+
+        .btn-load-model.loaded {
+            background: #4caf50;
+            border-color: #4caf50;
+            animation: none;
+        }
+
+        .btn-load-model.loaded:hover {
+            background: #45a049;
+            border-color: #45a049;
+        }
+
+        @keyframes pulse-border {
+            0%, 100% {
+                border-color: #ff6b35;
+                box-shadow: 0 0 0 0 rgba(255, 107, 53, 0.4);
+            }
+            50% {
+                border-color: #ff8c61;
+                box-shadow: 0 0 0 4px rgba(255, 107, 53, 0.1);
+            }
+        }
+
         .file-input {
             display: none;
         }
@@ -394,6 +436,11 @@
         .search-input:disabled {
             background: #f5f5f5;
             color: #999;
+            cursor: not-allowed;
+        }
+
+        .search-input:disabled::placeholder {
+            color: #bbb;
         }
 
         .note.search-highlight {
@@ -504,6 +551,8 @@
             justify-content: center;
             width: 22px;
             height: 22px;
+            min-width: 22px;
+            min-height: 22px;
             border-radius: 50%;
             font-size: 11px;
             font-weight: 600;
@@ -619,6 +668,11 @@
 
         .chat-message.thinking span {
             display: inline-block;
+            width: 10px;
+            height: 10px;
+            margin: 0 3px;
+            background-color: #797979;
+            border-radius: 50%;
             animation: bounce 1.4s infinite ease-in-out both;
         }
 
@@ -626,8 +680,14 @@
         .chat-message.thinking span:nth-child(2) { animation-delay: -0.16s; }
 
         @keyframes bounce {
-            0%, 80%, 100% { transform: scale(0); }
-            40% { transform: scale(1.0); }
+            0%, 80%, 100% { 
+                transform: scale(0.5);
+                opacity: 0.5;
+            }
+            40% { 
+                transform: scale(1.2);
+                opacity: 1;
+            }
         }
 
         .chat-input-container {
@@ -812,6 +872,86 @@
         #advancedSettingsContainer .form-group {
             margin-bottom: 0px;
         }
+
+        .embedding-recalc-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.85);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 4000;
+            flex-direction: column;
+        }
+
+        .embedding-recalc-overlay.visible {
+            display: flex;
+        }
+
+        .embedding-recalc-content {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            max-width: 500px;
+            text-align: center;
+        }
+
+        .embedding-recalc-content h3 {
+            margin: 0 0 16px 0;
+            font-size: 24px;
+            color: #333;
+        }
+
+        .embedding-recalc-content p {
+            margin: 0 0 24px 0;
+            font-size: 15px;
+            color: #666;
+            line-height: 1.5;
+        }
+
+        .embedding-progress {
+            margin-top: 24px;
+        }
+
+        .embedding-progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 12px;
+        }
+
+        .embedding-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #007AFF, #0056CC);
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+
+        .embedding-progress-text {
+            font-size: 14px;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .embedding-spinner {
+            margin: 20px auto;
+            width: 40px;
+            height: 40px;
+            border: 4px solid #e0e0e0;
+            border-top-color: #007AFF;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
         #advancedSettingsContainer label {
             margin-bottom: 0px;
             font-size: 10px;
@@ -852,10 +992,11 @@
         <!-- Search Group (pushed to right) -->
         <div class="toolbar-group search-group">
             <div class="search-container">
-                <input type="text" id="searchInput" class="search-input" placeholder="Search..." onkeydown="if(event.key==='Enter')performHybridSearch()">
-                <button class="btn btn-primary btn-sm" onclick="performHybridSearch()">Search</button>
+                <input type="text" id="searchInput" class="search-input" placeholder="Search..." onkeydown="if(event.key==='Enter') { closeSearchResults(); performHybridSearch(); }">
+                <button class="btn btn-primary btn-sm" id="searchBtn" onclick="closeSearchResults();performHybridSearch();">Search</button>
                 <button class="btn btn-secondary btn-sm" onclick="clearSearchHighlights(); closeSearchResults()">×</button>
-                <button class="btn btn-secondary" id="loadModelBtn" onclick="loadTransformerJsModel()">Load Search Model</button>
+
+                <button class="btn btn-load-model btn-sm" id="loadModelBtn" onclick="recalculateAllEmbeddings()" style="display: none;">⚡ Compute Embeddings</button>
 
                 <!-- Search Results Panel -->
                 <div class="search-results-panel" id="searchResultsPanel">
@@ -954,6 +1095,20 @@
             <div class="settings-actions">
                 <button class="btn btn-secondary" onclick="toggleSettingsModal(false)">Cancel</button>
                 <button class="btn btn-primary" onclick="saveSettings()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="embedding-recalc-overlay" id="embeddingRecalcOverlay">
+        <div class="embedding-recalc-content">
+            <h3>Recalculating Embeddings</h3>
+            <p>The embedding provider or model has changed. All note embeddings will be recalculated to ensure accurate search results.</p>
+            <div class="embedding-spinner"></div>
+            <div class="embedding-progress">
+                <div class="embedding-progress-bar">
+                    <div class="embedding-progress-fill" id="embeddingProgressFill"></div>
+                </div>
+                <div class="embedding-progress-text" id="embeddingProgressText">Preparing...</div>
             </div>
         </div>
     </div>
@@ -1141,8 +1296,9 @@
             
             isModelLoading = true;
             const loadBtn = document.getElementById('loadModelBtn');
-            loadBtn.textContent = 'Loading Model...';
+            loadBtn.textContent = '⏳ Loading Model...';
             loadBtn.disabled = true;
+            loadBtn.classList.remove('btn-load-model');
             
             try {
                 const { pipeline, env } = window.transformers;
@@ -1162,8 +1318,18 @@
                     }
                 });
                 
-                updateStatus('Embedding model loaded. Ready to search.');
-                loadBtn.textContent = 'Model Loaded';
+                loadBtn.textContent = '✓ Embeddings Ready';
+                loadBtn.classList.add('loaded');
+                loadBtn.disabled = false;
+                
+                // Enable search controls
+                const searchInput = document.getElementById('searchInput');
+                const searchBtn = document.getElementById('searchBtn');
+                searchInput.disabled = false;
+                searchInput.placeholder = 'Search notes semantically...';
+                searchBtn.disabled = false;
+                
+                updateStatus('Embeddings computed successfully - Semantic search is now available');
                 
                 // Pre-compute embeddings for existing notes
                 await computeAllNoteEmbeddings();
@@ -1171,7 +1337,8 @@
             } catch (error) {
                 console.error('Error loading embedding model:', error);
                 updateStatus('Failed to load embedding model. See console for details.');
-                loadBtn.textContent = 'Load Search Model';
+                loadBtn.textContent = '⚡ Compute Embeddings';
+                loadBtn.classList.add('btn-load-model');
                 loadBtn.disabled = false;
             } finally {
                 isModelLoading = false;
@@ -1200,13 +1367,17 @@
             if (embeddingModelName && embeddingModelName.startsWith('Xenova/bge')) {
                 text = "Represent this sentence for searching relevant passages: " + text;
             }
+            else if (currentSettings.embedding.provider === 'ollama' && currentSettings.embedding.model.includes('bge-')) {
+                // BGE models from Ollama also need the same prefix. 
+                text = "Represent this sentence for searching relevant passages: " + text;
+            }
             return await computeEmbedding(text);
         }
         async function computeEmbedding(text) {
             const provider = currentSettings.embedding.provider;
 
             if (provider === 'transformers') {
-                if (!embeddingModel) return null;
+                if (!embeddingModel || typeof embeddingModel !== 'function') return null;
                 try {
                     const output = await embeddingModel(text, { pooling: 'mean', normalize: true });
                     return Array.from(output.data);
@@ -1385,7 +1556,20 @@
                 const searchInput = document.getElementById('searchInput');
                 query = searchInput.value.trim();
             }
-            if (!query || !embeddingModel) return;
+            if (!query) {
+                closeSearchResults();
+                updateStatus('Ready');
+                return;
+            }
+            
+            if (!embeddingModel) {
+                if (currentSettings.embedding.provider === 'transformers') {
+                    updateStatus('⚠️ Please compute embeddings first by clicking "⚡ Compute Embeddings"');
+                    return 'ERROR: Embeddings not computed. Please click the "⚡ Compute Embeddings" button in the toolbar to compute embeddings before searching.';
+                }
+                updateStatus('Embedding model not initialized');
+                return;
+            }
             
             updateStatus('Searching...');
             
@@ -1409,6 +1593,7 @@
                 }
                 
                 // Calculate cosine similarities between query and all note embeddings
+                console.log("Note embeddings count:", noteEmbeddings.size);
                 const similarities = [];
                 for (const note of notes) {
                     const noteEmbedding = noteEmbeddings.get(note.id);
@@ -1702,12 +1887,25 @@
             updateSettingsVisibility();
         }
 
-        function saveSettings() {
+        async function saveSettings() {
+            // Store previous embedding settings for comparison
+            const previousEmbeddingProvider = currentSettings.embedding.provider;
+            const previousEmbeddingModel = currentSettings.embedding.model;
+
             // Embeddings
-            currentSettings.embedding.provider = document.getElementById('embeddingProvider').value;
+            const newEmbeddingProvider = document.getElementById('embeddingProvider').value;
             const embeddingModelEl = document.getElementById('embeddingModel');
+            const newEmbeddingModel = embeddingModelEl ? embeddingModelEl.value : currentSettings.embedding.model;
+
+            // Check if embedding settings changed
+            const embeddingSettingsChanged = 
+                (previousEmbeddingProvider !== newEmbeddingProvider) ||
+                (previousEmbeddingModel !== newEmbeddingModel);
+
+            // Update current settings
+            currentSettings.embedding.provider = newEmbeddingProvider;
             if (embeddingModelEl) {
-                currentSettings.embedding.model = embeddingModelEl.value;
+                currentSettings.embedding.model = newEmbeddingModel;
             }
 
             // LLM
@@ -1726,8 +1924,14 @@
             toggleSettingsModal(false);
             updateStatus('Settings saved.');
 
-            // Potentially reload models or update UI based on new settings
+            // Apply settings (this will reset models/embeddings if needed)
             applySettings();
+
+            // If embedding settings changed and we have notes, recalculate embeddings
+            if (embeddingSettingsChanged && notes.length > 0) {
+                // Recalculate embeddings with overlay
+                await recalculateAllEmbeddings();
+            }
         }
 
         function loadSettings() {
@@ -1758,20 +1962,170 @@
                 noteEmbeddings.clear();
             }
 
-            if (provider === 'transformers') {
+            // Check if embeddings are computed
+            const hasEmbeddings = noteEmbeddings.size > 0;
+            
+            // For transformers, also check if model is loaded
+            const isReady = provider === 'transformers' 
+                ? (embeddingModel && typeof embeddingModel === 'function' && hasEmbeddings)
+                : hasEmbeddings;
+
+            if (isReady) {
+                // Embeddings are ready
+                loadModelBtn.textContent = '✓ Embeddings Ready';
+                loadModelBtn.classList.remove('btn-load-model');
+                loadModelBtn.classList.add('loaded');
                 loadModelBtn.style.display = 'inline-block';
-                if (!embeddingModel) {
-                    // searchInput.disabled = true;
-                    // searchBtn.disabled = true;
-                    loadModelBtn.textContent = 'Load Search Model';
-                    loadModelBtn.disabled = false;
+                searchInput.disabled = false;
+                searchInput.placeholder = 'Search notes semantically...';
+                searchBtn.disabled = false;
+            } else {
+                // Embeddings not computed yet - show button for all providers
+                loadModelBtn.textContent = '⚡ Compute Embeddings';
+                loadModelBtn.classList.add('btn-load-model');
+                loadModelBtn.classList.remove('loaded');
+                loadModelBtn.disabled = false;
+                loadModelBtn.style.display = 'inline-block';
+                searchInput.disabled = true;
+                searchInput.placeholder = 'Compute embeddings first...';
+                searchBtn.disabled = true;
+                updateStatus('Click "⚡ Compute Embeddings" to enable semantic search');
+                
+                // For non-transformers providers, set a dummy embeddingModel object
+                if (provider !== 'transformers' && !embeddingModel) {
+                    embeddingModel = { provider: provider };
                 }
-            } else { // ollama or openai
-                loadModelBtn.style.display = 'none';
-                // searchInput.disabled = false;
-                // searchBtn.disabled = false;
-                embeddingModel = null; // No client-side model
             }
+        }
+
+        // Embedding recalculation overlay functions
+        function showEmbeddingOverlay() {
+            const overlay = document.getElementById('embeddingRecalcOverlay');
+            overlay.classList.add('visible');
+            updateEmbeddingProgress(0, 'Preparing...');
+        }
+
+        function hideEmbeddingOverlay() {
+            const overlay = document.getElementById('embeddingRecalcOverlay');
+            overlay.classList.remove('visible');
+        }
+
+        function updateEmbeddingProgress(percentage, message) {
+            const progressFill = document.getElementById('embeddingProgressFill');
+            const progressText = document.getElementById('embeddingProgressText');
+            
+            if (progressFill) {
+                progressFill.style.width = percentage + '%';
+            }
+            if (progressText && message) {
+                progressText.textContent = message;
+            }
+        }
+
+        async function recalculateAllEmbeddings() {
+            showEmbeddingOverlay();
+            
+            // Clear existing embeddings
+            noteEmbeddings.clear();
+            
+            const totalNotes = notes.length;
+            console.log(`Recalculating embeddings for ${totalNotes} notes...`);
+            
+            if (totalNotes === 0) {
+                updateEmbeddingProgress(100, 'No notes to process');
+                setTimeout(hideEmbeddingOverlay, 500);
+                return;
+            }
+
+            // For transformers, ensure model is loaded
+            if (currentSettings.embedding.provider === 'transformers') {
+                updateEmbeddingProgress(0, 'Loading embedding model...');
+                await loadTransformerJsModel();
+                
+                if (!embeddingModel) {
+                    updateEmbeddingProgress(0, 'Failed to load model');
+                    setTimeout(hideEmbeddingOverlay, 2000);
+                    updateStatus('Failed to load embedding model');
+                    return;
+                }
+            }
+
+            // Compute embeddings for all notes
+            updateEmbeddingProgress(5, `Computing embeddings for ${totalNotes} notes...`);
+            
+            // For OpenAI, use parallel batching for speed
+            if (currentSettings.embedding.provider === 'openai') {
+                const batchSize = 10; // Process 10 embeddings in parallel
+                const delayBetweenBatches = 100; // 100ms delay between batches
+                
+                for (let i = 0; i < totalNotes; i += batchSize) {
+                    const batch = notes.slice(i, Math.min(i + batchSize, totalNotes));
+                    
+                    // Process batch in parallel
+                    const embeddingPromises = batch.map(note => 
+                        computeEmbedding(note.text).then(embedding => ({
+                            noteId: note.id,
+                            embedding
+                        }))
+                    );
+                    
+                    const results = await Promise.all(embeddingPromises);
+                    
+                    // Store the embeddings
+                    results.forEach(({ noteId, embedding }) => {
+                        if (embedding) {
+                            console.log(`Computed embedding for note ${noteId}`);
+                            noteEmbeddings.set(noteId, embedding);
+                        }
+                    });
+                    
+                    const progress = 5 + Math.floor(((i + batch.length) / totalNotes) * 95);
+                    const message = `Processing notes ${i + 1}-${Math.min(i + batchSize, totalNotes)} of ${totalNotes}...`;
+                    updateEmbeddingProgress(progress, message);
+                    
+                    // Add delay between batches (except for the last batch)
+                    if (i + batchSize < totalNotes) {
+                        await new Promise(resolve => setTimeout(resolve, delayBetweenBatches));
+                    }
+                }
+            } else {
+                // Sequential processing for transformers and ollama
+                for (let i = 0; i < totalNotes; i++) {
+                    const note = notes[i];
+                    const embedding = await computeEmbedding(note.text);
+                    
+                    if (embedding) {
+                        console.log(`Computed embedding for note ${note.id}`);
+                        noteEmbeddings.set(note.id, embedding);
+                    }
+                    
+                    const progress = 5 + Math.floor(((i + 1) / totalNotes) * 95);
+                    const message = `Processing note ${i + 1} of ${totalNotes}...`;
+                    updateEmbeddingProgress(progress, message);
+                    
+                    // Small delay to allow UI to update (especially for transformers)
+                    await new Promise(resolve => setTimeout(resolve, 0));
+                }
+            }
+
+            // Complete
+            updateEmbeddingProgress(100, `Completed! ${noteEmbeddings.size} embeddings computed.`);
+            setTimeout(() => {
+                hideEmbeddingOverlay();
+                updateStatus(`All embeddings recalculated (${noteEmbeddings.size} notes)`);
+                
+                // Enable search controls and update button state
+                const loadModelBtn = document.getElementById('loadModelBtn');
+                const searchInput = document.getElementById('searchInput');
+                const searchBtn = document.getElementById('searchBtn');
+                
+                loadModelBtn.textContent = '✓ Embeddings Ready';
+                loadModelBtn.classList.remove('btn-load-model');
+                loadModelBtn.classList.add('loaded');
+                searchInput.disabled = false;
+                searchInput.placeholder = 'Search notes semantically...';
+                searchBtn.disabled = false;
+            }, 1000);
         }
 
         /** 
@@ -2880,7 +3234,17 @@
                 case "semantic_search":
                     const { query } = toolArguments;
                     // Get k and threshold from UI (same defaults as user sees: k=5, threshold=0.5)
-                    await performHybridSearch(query);
+                    const searchResult = await performHybridSearch(query);
+                    
+                    // Check if we got an error message back
+                    if (typeof searchResult === 'string' && searchResult.startsWith('ERROR:')) {
+                        return {
+                            success: false,
+                            error: searchResult,
+                            count: 0
+                        };
+                    }
+                    
                     const highlighted = Array.from(document.querySelectorAll('.note.search-highlight'))
                         .map(note => {
                             const noteData = notes.find(n => n.id === note.id);
@@ -3258,7 +3622,7 @@
 
             // Show thinking indicator
             const thinkingMessageId = 'thinking-' + Date.now();
-            addChatMessage('assistant', '...', 'thinking', thinkingMessageId);
+            addChatMessage('assistant', '', 'thinking', thinkingMessageId);
 
             try {
                 // Add user message to history
@@ -3426,7 +3790,7 @@
             }
 
             if (extraClass === 'thinking') {
-                messageDiv.innerHTML = '<span>.</span><span>.</span><span>.</span>';
+                messageDiv.innerHTML = '<span></span><span></span><span></span>';
             } else {
                 messageDiv.textContent = text;
             }
@@ -3564,7 +3928,7 @@
         
         // OpenAI embedding functions
         async function getEmbeddingOpenAI(text) {
-            if (!currentSettings.embedding.provider !== 'openai')
+            if (currentSettings.embedding.provider !== 'openai')
                 throw new Error('OpenAI provider is not selected in settings as embedding model: Cannot send request to OpenAI API.');
 
             const embeddingModel = currentSettings.embedding.model || 'text-embedding-3-small';
