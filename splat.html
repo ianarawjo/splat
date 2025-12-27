@@ -593,6 +593,7 @@
             margin-bottom: 12px;
             padding: 8px;
             border-radius: 6px;
+            white-space: pre-wrap;
         }
 
         .chat-message.user {
@@ -602,6 +603,31 @@
 
         .chat-message.assistant {
             background: #f5f5f5;
+        }
+
+        .chat-message.tool-use {
+            background: #ededed;
+            color: #555;
+            font-size: 0.8em;
+            text-align: center;
+            padding: 4px 12px;
+            border-radius: 16px;
+            margin: 8px auto;
+            width: fit-content;
+            max-width: 90%;
+        }
+
+        .chat-message.thinking span {
+            display: inline-block;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+
+        .chat-message.thinking span:nth-child(1) { animation-delay: -0.32s; }
+        .chat-message.thinking span:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1.0); }
         }
 
         .chat-input-container {
@@ -1503,6 +1529,7 @@
 
         function closeSearchResults() {
             document.getElementById('searchResultsPanel')?.classList.remove('active');
+            clearSearchHighlights();
         }
 
         function clearSearchHighlights() {
@@ -2300,6 +2327,9 @@
                     p.appendChild(draggedNote);
 
                     didDrag = false;
+
+                    // Track as last focused
+                    lastFocusedNoteId = draggedNote.id;
                 }
                 draggedNote = null;
             }
@@ -3003,12 +3033,26 @@
                     }
 
                 case "add":
-                    const { text: noteText, color: noteColor, position: notePosition } = toolArguments;
+                    let { text: noteText, color: noteColor, position: notePosition } = toolArguments;
+
                     if (!AVAILABLE_COLORS.includes(noteColor)) {
                         return {
                             success: false,
                             error: `Invalid color. Must be one of: ${AVAILABLE_COLORS.join(', ')}`
                         };
+                    }
+
+                    // Handle edge cases for malformatted args
+                    if (noteText === undefined) {
+                        noteText = "";
+                    }
+                    if (!notePosition) {
+                        // Get a default position near center of viewport
+                        const canvas = document.getElementById('canvas');
+                        notePosition = [
+                            canvas.scrollLeft + (canvas.clientWidth / 2) / zoomLevel - 50,
+                            canvas.scrollTop + (canvas.clientHeight / 2) / zoomLevel - 25
+                        ];
                     }
                     
                     // Split text by newlines to create multiple notes if needed
@@ -3032,6 +3076,15 @@
                             noteData.textChanged = true; // Mark for embedding computation
                         }
                         newNoteIds.push(note.id);
+
+                        // Highlight the note to indicate it was added
+                        // Add a temporary highlight effect
+                        note.classList.add('focused');
+
+                        // Remove the highlight after the animation completes
+                        setTimeout(() => {
+                            note.classList.remove('focused');
+                        }, 500);
                     });
                     
                     return {
@@ -3203,6 +3256,10 @@
             input.value = '';
             input.disabled = true;
 
+            // Show thinking indicator
+            const thinkingMessageId = 'thinking-' + Date.now();
+            addChatMessage('assistant', '...', 'thinking', thinkingMessageId);
+
             try {
                 // Add user message to history
                 chatHistory.push({ role: 'user', content: message });
@@ -3219,6 +3276,15 @@
                 // Loop until we get a final response without tool calls
                 let maxIterations = 10; // Prevent infinite loops
                 let iteration = 0;
+                let thinkingMessageRemoved = false;
+
+                const removeThinkingMessage = () => {
+                    if (!thinkingMessageRemoved) {
+                        const thinkingEl = document.getElementById(thinkingMessageId);
+                        if (thinkingEl) thinkingEl.remove();
+                        thinkingMessageRemoved = true;
+                    }
+                };
                 
                 while (iteration < maxIterations) {
                     iteration++;
@@ -3228,6 +3294,7 @@
                         try {
                             response = await chatCompletionOllama(messages, availableTools);
                         } catch (error) {
+                            removeThinkingMessage();
                             addChatMessage('assistant', `Error calling Ollama: ${error.message}`);
                             return;
                         }
@@ -3235,10 +3302,12 @@
                         try {
                             response = await chatCompletionOpenAI(messages, availableTools, 'auto');
                         } catch (error) {
+                            removeThinkingMessage();
                             addChatMessage('assistant', `Error calling OpenAI: ${error.message}`);
                             return;
                         }
                     } else {
+                        removeThinkingMessage();
                         addChatMessage('assistant', `Error: LLM provider not configured or supported.`);
                         return;
                     }
@@ -3274,9 +3343,11 @@
 
                     // Handle tool calls
                     if (assistantMessage.tool_calls && assistantMessage.tool_calls.length > 0) {
+                        removeThinkingMessage();
                         // Show tool usage
                         if (iteration === 1) {
-                            addChatMessage('assistant', `Using tools: ${assistantMessage.tool_calls.map(tc => tc.function.name).join(', ')}...`);
+                            const toolNames = assistantMessage.tool_calls.map(tc => tc.function.name).join(', ');
+                            addChatMessage('tool-use', `Using tools: ${toolNames}...`);
                         }
                         
                         // Execute all tool calls
@@ -3315,6 +3386,7 @@
                         // Continue loop to get next response
                         continue;
                     } else {
+                        removeThinkingMessage();
                         // No tool calls - this is the final response
                         // Add to chatHistory for persistence
                         chatHistory.push(assistantMessage);
@@ -3327,11 +3399,14 @@
                 }
                 
                 if (iteration >= maxIterations) {
+                    removeThinkingMessage();
                     addChatMessage('assistant', 'Error: Maximum iterations reached. There may be an issue with tool call handling.');
                 }
 
             } catch (error) {
                 console.error('Chat error:', error);
+                const thinkingEl = document.getElementById(thinkingMessageId);
+                if (thinkingEl) thinkingEl.remove();
                 addChatMessage('assistant', `Error: ${error.message}. Please check your OpenAI API key and network connection.`);
             } finally {
                 input.disabled = false;
@@ -3339,11 +3414,23 @@
             }
         }
 
-        function addChatMessage(role, text) {
+        function addChatMessage(role, text, extraClass = null, id = null) {
             const messagesDiv = document.getElementById('chatMessages');
             const messageDiv = document.createElement('div');
             messageDiv.className = `chat-message ${role}`;
-            messageDiv.textContent = text;
+            if (extraClass) {
+                messageDiv.classList.add(extraClass);
+            }
+            if (id) {
+                messageDiv.id = id;
+            }
+
+            if (extraClass === 'thinking') {
+                messageDiv.innerHTML = '<span>.</span><span>.</span><span>.</span>';
+            } else {
+                messageDiv.textContent = text;
+            }
+            
             messagesDiv.appendChild(messageDiv);
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
         }
