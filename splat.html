@@ -1679,12 +1679,6 @@
             title.textContent = `Results for "${query}" (${results.length})`;
             list.innerHTML = '';
 
-            function escapeHtml(text) {
-                const div = document.createElement('div');
-                div.textContent = text;
-                return div.innerHTML;
-            }
-
             results.forEach((result, index) => {
                 const note = notes.find(n => n.id === result.id);
                 if (!note) return;
@@ -3848,6 +3842,30 @@
             }
         }
 
+        // Basic HTML escape to prevent XSS from user/assistant content
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Minimal Markdown -> HTML renderer for bold and italics
+        // Supports **bold**, __bold__, *italic*, _italic_
+        function renderMarkdownInline(str) {
+            if (!str) return '';
+            let s = escapeHtml(str);
+
+            // Strong (bold): **text** or __text__ (non-greedy)
+            s = s.replace(/(\*\*|__)(.*?)\1/g, '<strong>$2</strong>');
+
+            // Emphasis (italic): *text* or _text_ (avoid replacing ones already processed)
+            s = s.replace(/(\*|_)(.*?)\1/g, '<em>$2</em>');
+
+            // Preserve line breaks
+            s = s.replace(/\n/g, '<br>');
+            return s;
+        }
+
         function addChatMessage(role, text, extraClass = null, id = null) {
             const messagesDiv = document.getElementById('chatMessages');
             const messageDiv = document.createElement('div');
@@ -3862,7 +3880,8 @@
             if (extraClass === 'thinking') {
                 messageDiv.innerHTML = '<span></span><span></span><span></span>';
             } else {
-                messageDiv.textContent = text;
+                // Render basic markdown (bold/italic) safely
+                messageDiv.innerHTML = renderMarkdownInline(text);
             }
             
             messagesDiv.appendChild(messageDiv);
