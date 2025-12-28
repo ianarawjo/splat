@@ -2596,6 +2596,14 @@
                     // Recreate the note menu
                     const menu = createNoteMenu(note);
                     note.appendChild(menu);
+
+                    // Recreate the pin indicator if it was removed during editing
+                    let pinIndicator = note.querySelector('.pin-indicator');
+                    if (!pinIndicator) {
+                        pinIndicator = document.createElement('div');
+                        pinIndicator.className = 'pin-indicator';
+                        note.appendChild(pinIndicator);
+                    }
                     
                     // Update note data
                     const noteData = notes.find(n => n.id === note.id);
