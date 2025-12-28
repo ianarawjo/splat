@@ -962,6 +962,16 @@
             margin-bottom: 0px;
             font-size: 10px;
         }
+        /* Inline code styling for rendered chat/code spans */
+        code {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, 'Roboto Mono', 'Courier New', monospace;
+            background: rgba(27,31,35,0.05);
+            color: #c7254e;
+            padding: 2px 6px;
+            border-radius: 6px;
+            font-size: 0.9em;
+            white-space: nowrap;
+        }
     </style>
 </head>
 <body>
@@ -969,7 +979,7 @@
         <input type="file" id="fileInput" class="file-input" accept=".txt,.csv">
 
         <!-- Settings Button -->
-        <button class="btn btn-secondary btn-sm" onclick="toggleSettingsModal(true)" style="font-size: 12pt; line-height: 1; display: flex; align-items: center; justify-content: center;">
+        <button class="btn btn-secondary btn-sm" onclick="toggleSettingsModal(true)" title="Open settings" aria-label="Open settings" style="font-size: 12pt; line-height: 1; display: flex; align-items: center; justify-content: center;">
             ⚙
         </button>
 
@@ -977,15 +987,15 @@
         <div class="toolbar-group">
             <button class="btn btn-primary btn-sm" onclick="document.getElementById('fileInput').click()" title="Load .txt (one per line) or .csv (first column)">Load File</button>
             <!-- <button class="btn btn-secondary btn-sm" onclick="loadSampleData()">Sample</button> -->
-            <button class="btn btn-secondary btn-sm" onclick="saveBoard()">Save</button>
-            <button class="btn btn-secondary btn-sm" onclick="loadBoard()">Load</button>
+            <button class="btn btn-secondary btn-sm" onclick="saveBoard()" title="Save board as JSON file">Save</button>
+            <button class="btn btn-secondary btn-sm" onclick="loadBoard()" title="Load board from a JSON file">Load</button>
         </div>
 
         <!-- Edit Group -->
         <div class="toolbar-group">
-            <button class="btn btn-primary btn-sm" onclick="addNewNote()">+ Note</button>
-            <button class="btn btn-toggle btn-sm" id="selectNotesBtn" onclick="toggleSelectMode()">Select</button>
-            <button class="btn btn-secondary btn-sm" onclick="clearBoard()">Clear</button>
+            <button class="btn btn-primary btn-sm" onclick="addNewNote()" title="Add a new note">+ Note</button>
+            <button class="btn btn-toggle btn-sm" id="selectNotesBtn" onclick="toggleSelectMode()" title="Toggle selection mode — drag to select notes">Select</button>
+            <button class="btn btn-secondary btn-sm" onclick="clearBoard()" title="Clear the board (confirmation will be requested)">Clear</button>
         </div>
 
         <!-- Zoom Group -->
@@ -1000,7 +1010,7 @@
             <div class="search-container">
                 <input type="text" id="searchInput" class="search-input" placeholder="Search..." onkeydown="if(event.key==='Enter') { closeSearchResults(); performHybridSearch(); }">
                 <button class="btn btn-primary btn-sm" id="searchBtn" onclick="closeSearchResults();performHybridSearch();">Search</button>
-                <button class="btn btn-secondary btn-sm" onclick="clearSearchHighlights(); closeSearchResults()">×</button>
+                <button class="btn btn-secondary btn-sm" title="Clear highlights on notes" aria-label="Clear highlights on notes" onclick="clearSearchHighlights(); closeSearchResults()">🧹</button>
 
                 <button class="btn btn-load-model btn-sm" id="loadModelBtn" onclick="recalculateAllEmbeddings()" style="display: none;">⚡ Compute Embeddings</button>
 
@@ -1259,7 +1269,7 @@
                 "Boss battles with unique mechanics (P25)"
             ];
 
-            clearBoard();
+            clearBoard(false);
 
             const canvasInner = document.getElementById('canvasInner');
             sampleNotes.forEach((text, index) => {
@@ -2840,7 +2850,7 @@
         }
 
         function restoreBoard(boardData) {
-            clearBoard();
+            clearBoard(false);
             const canvasInner = document.getElementById('canvasInner');
             
             boardData.notes.forEach(noteData => {
@@ -2884,7 +2894,12 @@
             return note;
         }
 
-        function clearBoard() {
+        function clearBoard(confirmClear = true) {
+            if (confirmClear) {
+                const ok = window.confirm('Clear the board? This cannot be undone.');
+                if (!ok) return;
+            }
+
             document.getElementById('canvasInner').innerHTML = '';
             // Re-add the selection rectangle
             const selectionRect = document.createElement('div');
@@ -3160,6 +3175,17 @@
             {
                 type: "function",
                 function: {
+                    name: "get_all_notes",
+                    description: "Return all notes on the board with their ids, text, color, pinned state and position.",
+                    parameters: {
+                        type: "object",
+                        properties: {}
+                    }
+                }
+            },
+            {
+                type: "function",
+                function: {
                     name: "get_all_notes_of_color",
                     description: "Select all notes with the given color. Available colors are: yellow, pink, blue, green, orange, purple.",
                     parameters: {
@@ -3390,6 +3416,33 @@
                         success: false,
                         message: "No note has been focused yet"
                     };
+
+                case "get_all_notes":
+                    try {
+                        if (!Array.isArray(notes)) {
+                            return { success: false, error: 'Notes array not initialized' };
+                        }
+
+                        const all = notes.map(n => ({
+                            id: n.id || 'unknown',
+                            text: n.text || '',
+                            color: n.color || 'unknown',
+                            pinned: Boolean(n.pinned),
+                            position: {
+                                x: (typeof n.x === 'number') ? n.x : (parseInt(document.getElementById(n.id)?.style.left) || 0),
+                                y: (typeof n.y === 'number') ? n.y : (parseInt(document.getElementById(n.id)?.style.top) || 0)
+                            }
+                        }));
+
+                        return {
+                            success: true,
+                            notes: all,
+                            count: all.length
+                        };
+                    } catch (err) {
+                        console.error('Error in get_all_notes:', err);
+                        return { success: false, error: err.message };
+                    }
 
                 case "get_all_notes_of_color":
                     try {
@@ -3625,7 +3678,7 @@
 
                 case "highlight_notes":
                     const { ids: highlightIds } = toolArguments;
-                    clearSearchHighlights();
+                    closeSearchResults();
                     highlightIds.forEach(id => {
                         const note = document.getElementById(id);
                         if (note) {
@@ -3695,7 +3748,7 @@
                 // Call OpenAI with tools
                 const systemMessage = {
                     role: 'system',
-                    content: 'You are a helpful assistant for an affinity diagramming tool. You can help users search, analyze, and edit their notes. Note that you have no clustering or organizational features yet. Use the available tools to interact with the board.'
+                    content: 'You are a helpful assistant for an affinity diagramming tool. You can help users search, analyze, and edit their notes. Do NOT output tables, NEVER output tables. Use the available tools to interact with the board.'
                 };
 
                 // Build messages array with system message
@@ -3849,17 +3902,28 @@
             return div.innerHTML;
         }
 
-        // Minimal Markdown -> HTML renderer for bold and italics
-        // Supports **bold**, __bold__, *italic*, _italic_
+        // Minimal Markdown -> HTML renderer for bold, italics, and inline code
+        // Supports `code`, **bold**, __bold__, *italic*, _italic_
         function renderMarkdownInline(str) {
             if (!str) return '';
+            // First escape to prevent XSS
             let s = escapeHtml(str);
 
-            // Strong (bold): **text** or __text__ (non-greedy)
-            s = s.replace(/(\*\*|__)(.*?)\1/g, '<strong>$2</strong>');
+            // Inline code: `code` (process first so contents are not further interpreted)
+            s = s.replace(/`([^`]+)`/g, function(_, code) {
+                return '<code>' + code + '</code>';
+            });
 
-            // Emphasis (italic): *text* or _text_ (avoid replacing ones already processed)
-            s = s.replace(/(\*|_)(.*?)\1/g, '<em>$2</em>');
+            // Strong (bold): **text** or __text__ (non-greedy, allow newlines)
+            s = s.replace(/(\*\*|__)([\s\S]*?)\1/g, '<strong>$2</strong>');
+
+            // Emphasis (italic) using asterisk: *text*
+            s = s.replace(/\*(.*?)\*/g, '<em>$1</em>');
+
+            // Emphasis (italic) using underscore: only match when there is whitespace
+            // to the left of the opening '_' (or start of string) and whitespace to the right
+            // of the closing '_' (or end of string). Preserve the leading whitespace via $1.
+            s = s.replace(/(^|\s)_(.*?)_(?=\s|$)/g, '$1<em>$2</em>');
 
             // Preserve line breaks
             s = s.replace(/\n/g, '<br>');
@@ -3879,6 +3943,8 @@
 
             if (extraClass === 'thinking') {
                 messageDiv.innerHTML = '<span></span><span></span><span></span>';
+            } else if (role === 'tool-use') {
+                messageDiv.textContent = text;
             } else {
                 // Render basic markdown (bold/italic) safely
                 messageDiv.innerHTML = renderMarkdownInline(text);
