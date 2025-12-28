@@ -2984,7 +2984,7 @@
             
             // Update zoom in status, but preserve other messages for a few seconds
             if (currentText.includes('%') || currentText === 'Ready - Load a text file to begin') {
-            statusEl.textContent = `Zoom: ${zoomPercent}% - Mouse wheel to zoom, drag canvas to pan`;
+            statusEl.textContent = `Zoom: ${zoomPercent}%`;
             } else {
             statusEl.textContent = `${currentText} (Zoom: ${zoomPercent}%)`;
             }
