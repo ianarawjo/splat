@@ -36,7 +36,43 @@ in the terminal, then restarting Ollama and serving it via `ollama serve`.
 
 To use Ollama, you then must install specific models. Ollama also hosts embedding models, like `bge-large`. For more info, see the [Ollama documentation](https://ollama.com/search).
 
-## How Can I Add Notes from Files?
+## Key Features
+
+**Board Interaction**
+- **Auto-save**: Work is automatically saved to localStorage every 60 seconds
+- **Zoom & Pan**: Navigate large canvases with zoom controls (25%-200%) and click-drag panning
+- **Drag-and-drop**: Load text files by dragging them directly onto the canvas
+- **Inline Editing**: Double-click any note to edit it directly on the board
+- **Pin Notes**: Pin important notes to keep them at the top of the visual stack
+
+**Note Management**
+- **Six Colors**: Choose from yellow, pink, blue, green, orange, or purple for visual coding
+- **Selection Mode**: Toggle selection mode to drag-select multiple notes
+- **Export/Import from JSON**: Simple JSON format to save and load files
+- **Participant IDs**: When notes end in participant IDs like (P1) or (P2), participant IDs for all selected notes will appear the status bar (useful when trying to see how 'representative' a cluster is when qualitative coding)
+
+**Semantic Search**
+- **Hybrid Retrieval**: Combines BM25 keyword matching with embedding-based semantic similarity
+- **Three Embedding Providers**: Choose between Transformers.js (local), Ollama (local), or OpenAI (cloud)
+- **Visual Results**: Search results panel shows ranked matches with click-to-focus navigation
+- **Configurable**: Adjust BM25 weight, relevance thresholds, and minimum semantic relevance in settings
+
+**AI Assistant (optional)**
+- **Tool-Calling Agent**: AI can perform actions like searching, creating, editing, and removing notes (note: it cannot cluster them automatically)
+- **Context-Aware**: AI has full access to board state and can use search features
+- **Flexible Backend**: Use Ollama for local/private processing or OpenAI for more powerful responses
+
+## Customize semantic search and AI assistant backends
+
+Splat supports semantic search in the browser through HF Transformers.js with `bge-small` by default, which will download the model the first time you compute embeddings. However, you can also configure it to use Ollama or OpenAI embeddings. 
+
+The AI assistant feature can use either Ollama (local) or OpenAI (cloud). 
+**The Ollama model you choose must support "tools" to work.** 
+For Ollama, I suggest using `gpt-oss:20b`: 
+
+![Screenshot of Splat settings screen](images/settings.png)
+
+## How To Add Notes from Files?
 
 Splat can load notes from plain text files (`.txt`) or CSV files (`.csv`). To load:
 - Drag and drop the file onto the canvas, or
@@ -86,32 +122,6 @@ Splat was created during a real research project: an interview study where I had
 The semantic search feature of Splat is configurable and AI assistance can be entirely local with Ollama running on-device. For many research applications, this privacy is essential. However, I have observed students use Splat for many other use cases, outside of qualitative coding; thus, more powerful AI assistance via OpenAI is available to those who want it. 
 
 Splat is offered as a community resource, completely free and open-source. Want a feature? Implement it yourself and raise a Pull Request!
-
-## Key Features
-
-**Board Interaction**
-- **Auto-save**: Work is automatically saved to localStorage every 60 seconds
-- **Zoom & Pan**: Navigate large canvases with zoom controls (25%-200%) and click-drag panning
-- **Drag-and-drop**: Load text files by dragging them directly onto the canvas
-- **Inline Editing**: Double-click any note to edit it directly on the board
-- **Pin Notes**: Pin important notes to keep them at the top of the visual stack
-
-**Note Management**
-- **Six Colors**: Choose from yellow, pink, blue, green, orange, or purple for visual coding
-- **Selection Mode**: Toggle selection mode to drag-select multiple notes
-- **Export/Import from JSON**: Simple JSON format to save and load files
-- **Participant IDs**: When notes end in participant IDs like (P1) or (P2), participant IDs for all selected notes will appear the status bar (useful when trying to see how 'representative' a cluster is when qualitative coding)
-
-**Semantic Search**
-- **Hybrid Retrieval**: Combines BM25 keyword matching with embedding-based semantic similarity
-- **Three Embedding Providers**: Choose between Transformers.js (local), Ollama (local), or OpenAI (cloud)
-- **Visual Results**: Search results panel shows ranked matches with click-to-focus navigation
-- **Configurable**: Adjust BM25 weight, relevance thresholds, and minimum semantic relevance in settings
-
-**AI Assistant (optional)**
-- **Tool-Calling Agent**: AI can perform actions like searching, creating, editing, and removing notes (note: it cannot cluster them automatically)
-- **Context-Aware**: AI has full access to board state and can use search features
-- **Flexible Backend**: Use Ollama for local/private processing or OpenAI for more powerful responses
 
 ### Acknowledgements
 
