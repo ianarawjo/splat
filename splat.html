@@ -224,6 +224,8 @@
         .note.color-green { background: #c8e6c9; border-color: #4caf50; }
         .note.color-orange { background: #ffcc80; border-color: #ff9800; }
         .note.color-purple { background: #e1bee7; border-color: #9c27b0; }
+        .note.color-tan { background: #f5e6d1; border-color: #c49a6c; }
+        .note.color-gray { background: #e0e0e0; border-color: #9e9e9e; }
 
         .note.selected {
             border: 3px solid #007AFF;
@@ -1169,6 +1171,8 @@
         <div class="color-option" style="background: #c8e6c9" data-color="green"></div>
         <div class="color-option" style="background: #ffcc80" data-color="orange"></div>
         <div class="color-option" style="background: #e1bee7" data-color="purple"></div>
+        <div class="color-option" style="background: #f5e6d1" data-color="tan"></div>
+        <div class="color-option" style="background: #e0e0e0" data-color="gray"></div>
     </div>
 
     <script>
@@ -1195,7 +1199,7 @@
         let lastFocusedNoteId = null;
 
         // Available colors enum (fixed set)
-        const AVAILABLE_COLORS = ['yellow', 'pink', 'blue', 'green', 'orange', 'purple'];
+        const AVAILABLE_COLORS = ['yellow', 'pink', 'blue', 'green', 'orange', 'purple', 'tan', 'gray'];
 
         // Settings
         const defaultSettings = {
@@ -3214,14 +3218,14 @@
                 type: "function",
                 function: {
                     name: "get_all_notes_of_color",
-                    description: "Select all notes with the given color. Available colors are: yellow, pink, blue, green, orange, purple.",
+                    description: "Select all notes with the given color. Available colors are: yellow, pink, blue, green, orange, purple, tan, gray",
                     parameters: {
                         type: "object",
                         properties: {
                             color: {
                                 type: "string",
                                 enum: AVAILABLE_COLORS,
-                                description: "The color to filter by. Must be one of: yellow, pink, blue, green, orange, purple"
+                                description: "The color to filter by. Must be one of: yellow, pink, blue, green, orange, purple, tan, gray"
                             }
                         },
                         required: ["color"]
@@ -3243,7 +3247,7 @@
                             color: {
                                 type: "string",
                                 enum: AVAILABLE_COLORS,
-                                description: "The color of the note. Must be one of: yellow, pink, blue, green, orange, purple. If none, select one at random."
+                                description: "The color of the note. Must be one of: yellow, pink, blue, green, orange, purple, tan, gray. If none, select one at random."
                             },
                             position: {
                                 type: "array",
@@ -3298,7 +3302,7 @@
                 type: "function",
                 function: {
                     name: "set_color",
-                    description: "Set the color of note with the given id. Available colors are: yellow, pink, blue, green, orange, purple.",
+                    description: "Set the color of note with the given id. Available colors are: yellow, pink, blue, green, orange, purple, tan, gray.",
                     parameters: {
                         type: "object",
                         properties: {
@@ -3309,7 +3313,7 @@
                             color: {
                                 type: "string",
                                 enum: AVAILABLE_COLORS,
-                                description: "The new color. Must be one of: yellow, pink, blue, green, orange, purple"
+                                description: "The new color. Must be one of: yellow, pink, blue, green, orange, purple, tan, gray"
                             }
                         },
                         required: ["id", "color"]
