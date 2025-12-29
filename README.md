@@ -2,8 +2,10 @@
 
  <img src="images/splat-logo.png" width="120px"> 
 
-An affinity diagramming tool for tasks like qualitative coding and mind-mapping, with a single-file footprint. 
- - Cluster notes on a canvas in your web browser
+**Organize ideas visually. One HTML file. Zero installation.**
+
+An affinity diagramming tool for tasks like qualitative coding and mind-mapping, with a single-file footprint.
+ - Cluster notes locally in your web browser
  - Basic tools like select, group move, duplicate, color
  - Save/load board state to/from JSON: dead-easy to transfer to others and edit yourself
  - Semantic search with embedding models by HF Transformers.js (entirely in browser), Ollama, or OpenAI
@@ -39,9 +41,9 @@ To use Ollama, you then must install specific models. Ollama also hosts embeddin
 ## Key Features
 
 **Board Interaction**
-- **Auto-save**: Work is automatically saved to localStorage every 60 seconds
-- **Zoom & Pan**: Navigate large canvases with zoom controls (25%-200%) and click-drag panning
-- **Drag-and-drop**: Load text files by dragging them directly onto the canvas
+- **Auto-save**: Work is auto-saved every 60 seconds
+- **Zoom & Pan**: Zoom controls (25%-200%) and click-drag panning
+- **Drag-and-drop**: Load text files by dragging them directly onto the board
 - **Inline Editing**: Double-click any note to edit it directly on the board
 - **Pin Notes**: Pin important notes to keep them at the top of the visual stack
 
@@ -122,6 +124,13 @@ Splat was created during a real research project: an interview study where I had
 The semantic search feature of Splat is configurable and AI assistance can be entirely local with Ollama running on-device. For many research applications, this privacy is essential. However, I have observed students use Splat for many other use cases, outside of qualitative coding; thus, more powerful AI assistance via OpenAI is available to those who want it. 
 
 Splat is offered as a community resource, completely free and open-source. Want a feature? Implement it yourself and raise a Pull Request!
+
+## What/Who Is Splat For?
+
+- Mind-mapping and brainstorming
+- Qualitative researchers coding interviews and clustering observations
+- UX researchers organizing user feedback and research findings
+- Product managers clustering feature requests
 
 ### Acknowledgements
 
