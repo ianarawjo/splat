@@ -2604,10 +2604,15 @@
                 
                 const nodeData = notes.find(n => n.id === note.id);
                 const currentText = nodeData ? nodeData.text : note.textContent;
+                
+                // Capture the current height before clearing content
+                const noteHeight = note.offsetHeight;
+                const notePadding = parseInt(window.getComputedStyle(note).padding);
+                
                 const textarea = document.createElement('textarea');
                 textarea.value = currentText;
                 textarea.style.width = '100%';
-                textarea.style.height = '100%';
+                textarea.style.height = (noteHeight - (notePadding * 2)) + 'px';
                 textarea.style.border = 'none';
                 textarea.style.background = 'transparent';
                 textarea.style.resize = 'none';
@@ -2615,6 +2620,7 @@
                 textarea.style.padding = '0';
                 textarea.style.margin = '0';
                 textarea.style.outline = 'none';
+                textarea.style.boxSizing = 'border-box';
                 
                 note.innerHTML = '';
                 note.appendChild(textarea);
@@ -3776,10 +3782,15 @@
                 // Add user message to history
                 chatHistory.push({ role: 'user', content: message });
 
+                // Add context of whether user has selected some notes or not
+                const selectedNoteIds = Array.from(selectedNotes);
+                const hasSelected = selectedNoteIds.length > 0;
+
                 // Call OpenAI with tools
                 const systemMessage = {
                     role: 'system',
-                    content: 'You are a helpful assistant for an affinity diagramming tool. You can help users search, analyze, and edit their notes. Do NOT output tables, NEVER output tables. Use the available tools to interact with the board.'
+                    content: 'You are a helpful assistant for an affinity diagramming tool. You can help users search, analyze, and edit their notes. Do NOT output tables, NEVER output tables. Use the available tools to interact with the board. If the user has selected notes, you must first get their IDs using the get_selected tool. If not, you can use semantic_search or keyword_search to find relevant notes. Always use tools to get note content instead of making up information. \n' +
+                    `Currently, the user currently has ${hasSelected ? 'selected some notes' : 'not selected any notes'} on the board.`
                 };
 
                 // Build messages array with system message
