@@ -115,15 +115,12 @@ Notes can include participant IDs in parentheses (e.g., `(P1)`, `(P2)`) at the e
 
 ## Why Splat?
 
-I am an HCI researcher who prefers to [affinity diagram](https://www.nngroup.com/articles/affinity-diagram/) when coding qualitative data. In the past, 
-I've used FigJam and Miro, but find them too clunky and proprietary for this task. 
+I am an [HCI researcher](https://ianarawjo.com) who prefers to [affinity diagram](https://www.nngroup.com/articles/affinity-diagram/) when coding qualitative data. In the past, I've used FigJam and Miro, but find them too clunky and proprietary for this task. 
 I wanted a tool that supports affinity diagramming for research with low overhead.
 
 Splat was created during a real research project: an interview study where I had to cluster 1400+ descriptive codes. While using Splat to manually cluster data, I added features iteratively as I needed them. These include selecting multiple notes, displaying participant IDs of selected notes, and  semantic search. When sharing with my teammates, I found it very easy to just give them the exported JSON file and the HTML of Splat, which they could load themselves.
 
 The semantic search feature of Splat is configurable and AI assistance can be entirely local with Ollama running on-device. For many research applications, this privacy is essential. However, I have observed students use Splat for many other use cases, outside of qualitative coding; thus, more powerful AI assistance via OpenAI is available to those who want it. 
-
-Splat is offered as a community resource, completely free and open-source. Want a feature? Implement it yourself and raise a Pull Request!
 
 ## What/Who Is Splat For?
 
@@ -132,8 +129,12 @@ Splat is offered as a community resource, completely free and open-source. Want 
 - UX researchers organizing user feedback and research findings
 - Product managers clustering feature requests
 
-### Acknowledgements
+## Contributing
 
-Splat is an open-source project of the [Montréal HCI](https://hci.iro.umontreal.ca/) group. The first version of Splat was originally vibe-coded with the help of Claude Sonnet 4.0, and iteratively adjusted by myself with further targeted AI help in VS Code.
+Splat is offered as a community resource, completely free and open-source. Want a feature? Implement it yourself and raise a Pull Request!
+
+## Acknowledgements
+
+Splat was created by the [Montréal HCI](https://hci.iro.umontreal.ca/) group. The first version of Splat was originally vibe-coded by Ian Arawjo with the help of Claude Sonnet 4.0, and iteratively by myself with further targeted AI help in VS Code.
 
 The AI assistance and search results features were added by Jingyue Zhang, Ling Xin He, and Yunfan Shang. 
