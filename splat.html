@@ -580,6 +580,12 @@
             color: #bf360c;
         }
 
+        .search-result-rank.keyword {
+            background: #ffeb3b;
+            color: #333;
+            border: 1px solid #d4b200;
+        }
+
         .search-result-content {
             display: flex;
             flex-direction: column;
@@ -1577,19 +1583,12 @@
                 updateStatus('Ready');
                 return;
             }
-            
-            if (!embeddingModel) {
-                if (currentSettings.embedding.provider === 'transformers') {
-                    updateStatus('⚠️ Please compute embeddings first by clicking "⚡ Compute Embeddings"');
-                    return 'ERROR: Embeddings not computed. Please click the "⚡ Compute Embeddings" button in the toolbar to compute embeddings before searching.';
-                }
-                updateStatus('Embedding model not initialized');
-                return;
-            }
-            
+
             updateStatus('Searching...');
-            
+
             try {
+                const relevanceThreshold = currentSettings?.search?.relevanceThreshold ?? 0.3;
+  
                 // Clear previous highlights
                 clearSearchHighlights();
 
@@ -1597,84 +1596,109 @@
                 bm25.index(notes);
 
                 // Run BM25 on all notes to get scores
-                const bm25Results = bm25.search(query, notes, 20);
-                // console.log('BM25 Results:', bm25Results);
-                // 'notes' now has 'bm25Score' property for each note
-                
-                // Compute embedding for search query
-                const queryEmbedding = await computeEmbeddingForQuery(query);
-                if (!queryEmbedding) {
-                    updateStatus('Error embedding the search query');
-                    return;
-                }
-                
-                // Calculate cosine similarities between query and all note embeddings
-                console.log("Note embeddings count:", noteEmbeddings.size);
-                const similarities = [];
-                for (const note of notes) {
-                    const noteEmbedding = noteEmbeddings.get(note.id);
-                    if (noteEmbedding) {
-                        const similarity = cosineSimilarity(queryEmbedding, noteEmbedding);
-                        similarities.push({ id: note.id, text: note.text, similarity });
+                const bm25Results = bm25.search(query, notes, 50);
+
+                // We'll collect final results in this array. Each result should have: id, text, relevance, bm25Score, similarity, source
+                let finalResults = [];
+
+                // If we have embeddings and a model, compute vector similarities and combine with BM25
+                let combinedScores = [];
+                if (embeddingModel) {
+                    // Compute embedding for search query
+                    const queryEmbedding = await computeEmbeddingForQuery(query);
+                    if (!queryEmbedding) {
+                        updateStatus('Error embedding the search query');
+                    } else {
+                        // Calculate cosine similarities between query and all note embeddings
+                        const similarities = [];
+                        for (const note of notes) {
+                            const noteEmbedding = noteEmbeddings.get(note.id);
+                            if (noteEmbedding) {
+                                const similarity = cosineSimilarity(queryEmbedding, noteEmbedding);
+                                similarities.push({ id: note.id, text: note.text, similarity });
+                            }
+                        }
+
+                        // Combine BM25 scores with embedding similarities where possible
+                        const bm25Weight = currentSettings?.search?.bm25Weight ?? 0.4;
+                        const maxBM25Score = bm25Results.length > 0 ? Math.max(...bm25Results.map(doc => doc.bm25Score)) : 0;
+                        combinedScores = similarities.map(sim => {
+                            const bm25Doc = bm25Results.find(doc => doc.id === sim.id);
+                            const bm25Score = bm25Doc ? bm25Doc.bm25Score : 0;
+                            const normalizedBM25 = maxBM25Score > 0 ? (bm25Score / maxBM25Score) : 0;
+                            const combinedScore = (bm25Weight * normalizedBM25) + ((1 - bm25Weight) * sim.similarity);
+                            return { id: sim.id, text: sim.text, relevance: combinedScore, bm25Score: normalizedBM25, similarity: sim.similarity, source: 'hybrid' };
+                        });
+
+                        // Sort by relevance (highest first)
+                        combinedScores.sort((a, b) => b.relevance - a.relevance);
+
+                        // Decide which semantic+bm25 matches to show
+                        const minSemanticRelevance = currentSettings?.search?.minSemanticRelevance ?? 0.6;
+                        const topMatches = combinedScores.filter(s => (s.relevance >= relevanceThreshold || s.similarity >= minSemanticRelevance));
+
+                        finalResults = finalResults.concat(topMatches);
+                    }
+                } else {
+                    // No embeddings available — we still want search to work using BM25 and keyword fallback
+                    updateStatus('Embeddings not loaded — performing BM25 + keyword search');
+
+                    // Add BM25-only results if we don't have semantic scores for them yet
+                    // Map bm25Results entries to our result shape if they're not already included
+                    const maxBM25Score = bm25Results.length > 0 ? Math.max(...bm25Results.map(doc => doc.bm25Score)) : 0;
+                    if (maxBM25Score > 0) {
+                        for (const doc of bm25Results) {
+                            const normalizedBM25 = doc.bm25Score / maxBM25Score;
+                            if (normalizedBM25 > relevanceThreshold) {
+                                finalResults.push({ id: doc.id, text: doc.text, relevance: normalizedBM25, bm25Score: normalizedBM25, similarity: 0, source: 'bm25' });
+                            }
+                        }
                     }
                 }
 
-                // Combine BM25 scores with embedding similarities
-                // The ratio to mix BM25 and embedding similarity scores
-                const bm25Weight = currentSettings?.search?.bm25Weight ?? 0.4;
-                const maxBM25Score = bm25Results.length > 0 ? Math.max(...bm25Results.map(doc => doc.bm25Score)) : 0;
-                const combinedScores = similarities.map(sim => {
-                    if (bm25Results.length === 0) return sim;
-                    const bm25Doc = bm25Results.find(doc => doc.id === sim.id);
-                    const bm25Score = bm25Doc ? bm25Doc.bm25Score : 0;
-                    // Normalize BM25 score (simple min-max normalization)
-                    const normalizedBM25 = maxBM25Score > 0 ? (bm25Score / maxBM25Score) : 0;
-                    const combinedScore = (bm25Weight * normalizedBM25) + ((1 - bm25Weight) * sim.similarity);
-                    return { id: sim.id, text: sim.text, relevance: combinedScore, bm25Score: normalizedBM25, similarity: sim.similarity };
-                });
+                // Run simpler keyword-only search in parallel and include matching notes that are NOT already present
+                const queryWords = query.toLowerCase().split(/\s+/).filter(w => w.length > 0);
+                const keywordMatches = [];
+                for (const note of notes) {
+                    if (keywordMatch(query, note.text)) {
+                        keywordMatches.push(note.id);
+                    }
+                }
 
-                // Sort by relevance (highest first)
-                combinedScores.sort((a, b) => b.relevance - a.relevance);
-                // console.log('Scored notes:', combinedScores);
-                
-                // Highlight only top matches (similarity threshold and top-k)
-                const relevanceThreshold = currentSettings?.search?.relevanceThreshold ?? 0.3; // Threshold for relevance from the combined score
-                const minSemanticRelevance = currentSettings?.search?.minSemanticRelevance ?? 0.6; // Lower bound for relevance, a softer filter to have semantic non-BM25 matches still visually appear
-                // const topK = 20;
-                const topMatches = combinedScores.filter(s => (s.relevance >= relevanceThreshold || s.similarity >= minSemanticRelevance)); // .slice(0, topK);
+                // Include keyword matches not already included (by id)
+                for (const km of keywordMatches) {
+                    if (!finalResults.find(r => r.id === km)) {
+                        finalResults.push({ id: km, text: notes.find(n => n.id === km).text, relevance: 0, bm25Score: 0, similarity: 0, source: 'keyword' });
+                    }
+                }
 
-                if (topMatches.length > 0) {
-                    topMatches.forEach((match, idx) => {
+                // Sort final results by relevance descending and cap
+                finalResults.sort((a, b) => (b.relevance || 0) - (a.relevance || 0));
+
+                if (finalResults.length > 0) {
+
+                    // Highlight top matches
+                    finalResults.forEach((match, idx) => {
                         const noteElement = document.getElementById(match.id);
                         if (noteElement) {
-                            // Visually highlight the note
                             noteElement.classList.add('search-highlight');
-
-                            if (match.relevance >= relevanceThreshold) {
-                                // Modulate the highlight intensity based on similarity
-                                const intensity = Math.min(1, (Math.max(relevanceThreshold, match.relevanceScore + 0.01 * (topMatches.length - idx)) - relevanceThreshold) / (1 - relevanceThreshold));
-                                noteElement.style.borderWidth = (3 + Math.floor(intensity * 6)) + 'px';
-                                // Scroll into view for strong matches
-                                // noteElement.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+                            if (match.source === 'keyword') {
+                                noteElement.style.borderWidth = '2px';
+                            } else if (match.relevance >= relevanceThreshold) {
+                                noteElement.style.borderWidth = '4px';
                             } else if (match.similarity >= minSemanticRelevance) {
-                                // Softer highlight for semantic-only matches
                                 noteElement.style.borderWidth = '3px';
                             }
                         }
                     });
-                    
-                    // Focus on the best match
-                    // const bestMatch = topMatches[0];
-                    // focusOnNote(bestMatch.note.id);
 
-                     // Show search results panel
-                    showSearchResults(query, topMatches);
-                    
-                    updateStatus(`Found ${topMatches.length} similar notes (relevance > ${relevanceThreshold})`);
+                    showSearchResults(query, finalResults);
+                    updateStatus(`Found ${finalResults.length} results`);
                 } else {
-                    updateStatus('No similar notes found');
+                    updateStatus('No matching notes found');
+                    closeSearchResults();
                 }
-                
+
             } catch (error) {
                 console.error('Search error:', error);
                 updateStatus('Search error occurred');
@@ -1693,19 +1717,25 @@
                 const note = notes.find(n => n.id === result.id);
                 if (!note) return;
 
-                const scoreLevel = result.relevance >= 0.7 ? 'high' : (result.relevance >= 0.4 ? 'medium' : 'low');
+                // Choose styling based on source (hybrid/bm25/keyword)
+                let rankClass = 'low';
+                if (result.source === 'keyword') {
+                    rankClass = 'keyword';
+                } else {
+                    rankClass = result.relevance >= 0.7 ? 'high' : (result.relevance >= 0.4 ? 'medium' : 'low');
+                }
 
                 const item = document.createElement('div');
                 item.className = 'search-result-item';
                 item.innerHTML = `
                     <div style="display: flex; align-items: flex-start;">
-                        <span class="search-result-rank ${scoreLevel}">${index + 1}</span>
+                        <span class="search-result-rank ${rankClass}">${index + 1}</span>
                         <div class="search-result-content">
                             <div class="search-result-text">${escapeHtml(note.text)}</div>
                             <div class="search-result-meta">
-                                <span class="search-result-score ${scoreLevel}">Score: ${(result.relevance * 100).toFixed(1)}%</span>
-                                <span>BM25: ${(result.bm25Score * 100).toFixed(0)}%</span>
-                                <span>Vector: ${(result.similarity * 100).toFixed(0)}%</span>
+                                <span class="search-result-score ${rankClass}">` + (result.source === 'keyword' ? 'Keyword match' : `Score: ${( (result.relevance||0) * 100).toFixed(1)}%`) + `</span>
+                                <span>${result.source === 'bm25' ? 'BM25 result' : (result.source === 'keyword' ? '' : `BM25: ${( (result.bm25Score||0) * 100).toFixed(0)}%`)}</span>
+                                <span>${result.source === 'hybrid' ? `Vector: ${( (result.similarity||0) * 100).toFixed(0)}%` : ''}</span>
                             </div>
                         </div>
                     </div>
@@ -1986,9 +2016,7 @@
                 loadModelBtn.classList.remove('btn-load-model');
                 loadModelBtn.classList.add('loaded');
                 loadModelBtn.style.display = 'inline-block';
-                searchInput.disabled = false;
-                searchInput.placeholder = 'Search notes semantically...';
-                searchBtn.disabled = false;
+                searchInput.placeholder = 'Semantic search...';
             } else {
                 // Embeddings not computed yet - show button for all providers
                 loadModelBtn.textContent = '⚡ Compute Embeddings';
@@ -1996,9 +2024,8 @@
                 loadModelBtn.classList.remove('loaded');
                 loadModelBtn.disabled = false;
                 loadModelBtn.style.display = 'inline-block';
-                searchInput.disabled = true;
-                searchInput.placeholder = 'Compute embeddings first...';
-                searchBtn.disabled = true;
+                searchInput.placeholder = 'Basic search...';
+                searchInput.title = 'Embeddings not computed yet, so only basic keyword search is available. Press ⚡ Compute Embeddings button to enable semantic search.';
                 updateStatus('Click "⚡ Compute Embeddings" to enable semantic search');
                 
                 // For non-transformers providers, set a dummy embeddingModel object
