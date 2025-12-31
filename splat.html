@@ -2637,9 +2637,15 @@
             note.addEventListener('dblclick', function(e) {
                 // Don't edit if in select mode
                 if (isSelectMode) return;
-                
+
+                // If a textarea is already present (we're already editing), ignore
+                if (note.querySelector('textarea')) {
+                    e.stopPropagation();
+                    return;
+                }
+
                 e.stopPropagation();
-                
+
                 const nodeData = notes.find(n => n.id === note.id);
                 const currentText = nodeData ? nodeData.text : note.textContent;
                 
@@ -2697,10 +2703,12 @@
                 }
                 
                 textarea.addEventListener('blur', finishEditing);
+                // Allow Enter to insert a newline. Use Ctrl/Cmd+Enter to finish editing.
                 textarea.addEventListener('keydown', function(e) {
-                    if (e.key === 'Enter' && !e.shiftKey) {
+                    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
                         e.preventDefault();
                         finishEditing();
+                        return;
                     }
                     if (e.key === 'Escape') {
                         finishEditing();
