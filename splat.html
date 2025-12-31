@@ -994,7 +994,6 @@
         <!-- File Group -->
         <div class="toolbar-group">
             <button class="btn btn-primary btn-sm" onclick="document.getElementById('fileInput').click()" title="Load .txt (one per line) or .csv (first column)">Load File</button>
-            <!-- <button class="btn btn-secondary btn-sm" onclick="loadSampleData()">Sample</button> -->
             <button class="btn btn-secondary btn-sm" onclick="saveBoard()" title="Save board as JSON file">Save</button>
             <button class="btn btn-secondary btn-sm" onclick="loadBoard()" title="Load board from a JSON file">Load</button>
         </div>
@@ -1223,6 +1222,85 @@
 
         let currentSettings = JSON.parse(JSON.stringify(defaultSettings));
 
+        // Sample board shown when there is no autosave present
+        const SAMPLE_BOARD = {
+            "notes": [
+                {
+                    "id": "782bfff8-64e3-434b-95ba-ad73af77931c",
+                    "text": "Hello!",
+                    "x": 166,
+                    "y": 139,
+                    "color": "yellow",
+                    "pinned": false
+                },
+                {
+                    "id": "8f2f2b14-cc6e-4fb4-84b3-86dbe4e09aed",
+                    "text": "When you're done, click Save to download a JSON with your board!",
+                    "x": 918,
+                    "y": 333,
+                    "color": "blue",
+                    "pinned": false
+                },
+                {
+                    "id": "eb8747db-65c8-4a59-b988-4cce1f12a646",
+                    "text": "Pinning a note 📌 will bring it to the top of the note stack. Hover over the note and click the 📌 icon.",
+                    "x": 277,
+                    "y": 376,
+                    "color": "tan",
+                    "pinned": false
+                },
+                {
+                    "id": "435c3068-701c-42b3-8a1e-c03c1bd5efa0",
+                    "text": "To change note color, hover over it and click the palette 🎨.",
+                    "x": 382,
+                    "y": 450,
+                    "color": "gray",
+                    "pinned": false
+                },
+                {
+                    "id": "fa8e3376-359a-4d2a-af8e-8100bf17a137",
+                    "text": "Click + Note to add some notes and get started",
+                    "x": 616,
+                    "y": 81,
+                    "color": "green",
+                    "pinned": false
+                },
+                {
+                    "id": "6f49a8cd-4635-4530-9654-2d2612516bfa",
+                    "text": "Made with 💜 by Ian Arawjo and friends",
+                    "x": 672,
+                    "y": 491,
+                    "color": "pink",
+                    "pinned": false
+                },
+                {
+                    "id": "9a1893b2-f89a-408e-a2a6-5c1da52c8bba",
+                    "text": "If you want to use local AI features, download Splat: https://raw.githubusercontent.com/ianarawjo/splat/refs/heads/main/splat.html",
+                    "x": 1022,
+                    "y": 418,
+                    "color": "purple",
+                    "pinned": false
+                },
+                {
+                    "id": "3fb4a978-3fd0-48e6-96c5-f238ee60a6e7",
+                    "text": "Welcome to SPLAT",
+                    "x": 324,
+                    "y": 190,
+                    "color": "yellow",
+                    "pinned": false
+                },
+                {
+                    "id": "d19c69a0-e599-44f7-95de-f7cc263154ee",
+                    "text": "Or, add notes in bulk: prepare a text file .txt with each note on a separate line",
+                    "x": 695,
+                    "y": 151,
+                    "color": "green",
+                    "pinned": false
+                }
+            ],
+            "timestamp": "2025-12-31T02:12:12.708Z"
+        };
+
         const transformerModels = [
             'Xenova/bge-small-en-v1.5',
             'Xenova/all-MiniLM-L6-v2',
@@ -1249,46 +1327,6 @@
         canvas.addEventListener('mousemove', handleCanvasMouseMove);
         canvas.addEventListener('mouseup', handleCanvasMouseUp);
         canvas.addEventListener('mouseleave', handleCanvasMouseLeave);
-
-        function loadSampleData() {
-            const sampleNotes = [
-                "Fire spell that deals damage over time to enemies (P1)",
-                "Ice spell that slows enemy movement speed (P2)",
-                "Lightning bolt - instant high damage single target (P3)",
-                "Healing potion restores 50 HP instantly (P4)",
-                "Mana potion restores 30 MP over 5 seconds (P5)",
-                "Shield spell blocks 100 damage for 10 seconds (P6)",
-                "Teleport ability - instant movement to target location (P7)",
-                "Sword attack - basic melee damage (P8)",
-                "Bow and arrow - ranged physical damage (P9)",
-                "Stealth mode - become invisible for 15 seconds (P10)",
-                "Mount system - horses increase travel speed (P11)",
-                "Flying mount - dragons allow aerial travel (P12)",
-                "Inventory system with 50 slot capacity (P13)",
-                "Quest tracker shows active objectives (P14)",
-                "Mini-map displays nearby enemies and allies (P15)",
-                "Character stats: strength, agility, intelligence (P16)",
-                "Skill tree with 3 branches per class (P17)",
-                "PvP arena for competitive battles (P18)",
-                "Guild system for player organizations (P19)",
-                "Trading system between players (P20)",
-                "Crafting system for weapons and armor (P21)",
-                "Fishing mini-game for resources (P22)",
-                "Day/night cycle affects gameplay (P23)",
-                "Weather system impacts combat (P24)",
-                "Boss battles with unique mechanics (P25)"
-            ];
-
-            clearBoard(false);
-
-            const canvasInner = document.getElementById('canvasInner');
-            sampleNotes.forEach((text, index) => {
-                const note = createNote(text, index, 'yellow', false);
-                canvasInner.appendChild(note);
-            });
-
-            updateStatus(`Loaded ${sampleNotes.length} sample game feature notes`);
-        }
 
         /** 
          * SEMANTIC SEARCH
@@ -3125,6 +3163,17 @@
                 } catch (error) {
                     console.error('Failed to load or parse auto-saved board:', error);
                     localStorage.removeItem('splatAutosave'); // Clear corrupted data
+                }
+            } else {
+                // No autosave found — load the sample board so users see an example on first load
+                try {
+                    if (SAMPLE_BOARD && SAMPLE_BOARD.notes && SAMPLE_BOARD.notes.length > 0) {
+                        console.log('No autosave found - loading sample board');
+                        restoreBoard(SAMPLE_BOARD);
+                        updateStatus(`Loaded sample board (${SAMPLE_BOARD.notes.length} notes)`);
+                    }
+                } catch (err) {
+                    console.error('Failed to load sample board:', err);
                 }
             }
         }
